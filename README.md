@@ -13,13 +13,21 @@ Ctrl+Z; при ошибке модель не меняется, причина �
 
 ## Установка (с автообновлением)
 
+**Проще всего — установщик.** На странице [Releases](https://github.com/Zhaskairat001/SBK.extension/releases)
+скачайте `Spec_Manager_GitHub_installer.zip`, распакуйте, закройте Revit и запустите «Установить_с_GitHub.bat».
+Он сам сохранит прежнюю папку в резервную копию, поставит расширение из GitHub, перенесёт настройки проектов
+(`_settings`, `_presets`) и включит автообновление pyRevit. Повторный запуск — обновление, «Откатить_GitHub.bat» —
+вернуть как было.
+
+Вручную:
+
 1. Закройте Revit.
 2. Если кнопка уже стоит из установщика (архив `Менеджер_спецификаций_*.zip`) — переименуйте папку
    `%APPDATA%\pyRevit\Extensions\SBK.extension` в `SBK.extension_old`. Из неё потом понадобятся папки
    `_settings` и `_presets` (настройки ваших проектов).
 3. В командной строке:
    ```
-   pyrevit extend ui SBK https://github.com/Zhaskairat001/SBK.extension.git
+   pyrevit extend ui SBK https://github.com/Zhaskairat001/SBK.extension.git --branch=main
    ```
    или в Revit: вкладка pyRevit → Extensions → «Add custom extension» → ссылка выше.
 4. Скопируйте `_settings` и `_presets` из `SBK.extension_old` в новую папку `SBK.extension` (если они были).
