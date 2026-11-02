@@ -23,17 +23,25 @@ from System.Collections.Generic import List
 from Autodesk.Revit import DB
 from Autodesk.Revit.UI import IExternalEventHandler, ExternalEvent
 
+import vks_theme as T
+
 _KEEP = []          # живые панели: обработчики и окна не должны собираться сборщиком мусора
 
 
-def _brush(h):
-    h = h.lstrip("#")
-    return SolidColorBrush(Color.FromRgb(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)))
+def _brush(h, bg=False):
+    """Кисть для темы окна (vks_theme)."""
+    return T.brush(h, bg)
 
 
-C_BLUE = _brush("#1F5FAD")
-C_MUTED = _brush("#5B6470")
-C_WARN = _brush("#8A5A00")
+def _consts():
+    global C_BLUE, C_BLUE_BG, C_MUTED, C_WARN
+    C_BLUE = _brush("#1F5FAD")
+    C_BLUE_BG = _brush("#1F5FAD", True)
+    C_MUTED = _brush("#5B6470")
+    C_WARN = _brush("#8A5A00")
+
+
+_consts()
 
 
 class _Handler(IExternalEventHandler):
@@ -79,7 +87,13 @@ class FixPanel(object):
         self.handler = _Handler()
         self.handler.on_error = self._error
         self.event = ExternalEvent.Create(self.handler)       # создаётся в контексте API (из script.py)
+        try:
+            T.init()            # тема — как у мастера
+        except Exception:
+            T.DARK = False
+        _consts()
         w = Window()
+        T.dress(w)
         w.Title = u"Исправить в Revit — {0}".format(title)
         w.Width = 560
         w.Height = 560
@@ -92,7 +106,7 @@ class FixPanel(object):
         w.Top = SystemParameters.WorkArea.Top + 90
         w.FontFamily = FontFamily(u"Segoe UI")
         w.FontSize = 13
-        w.Background = Brushes.White
+        w.Background = _brush("#FFFFFF", True)
         w.Closed += self._closed
         self.win = w
         root = DockPanel()
@@ -131,7 +145,7 @@ class FixPanel(object):
             b.Padding = Thickness(12, 4, 12, 4)
             b.Margin = Thickness(6, 0, 0, 0)
             if primary:
-                b.Background = C_BLUE
+                b.Background = C_BLUE_BG
                 b.Foreground = Brushes.White
                 b.FontWeight = FontWeights.SemiBold
             b.Click += (lambda f: (lambda s, e: f()))(fn)

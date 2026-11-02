@@ -34,6 +34,8 @@ from System.Windows.Controls import SelectionChangedEventHandler
 from System.Windows.Threading import DispatcherPriority
 from System import Action
 
+import vks_theme as T
+
 P_MAIN = u"ADSK_Система_Имя"      # прежние настройки; заменён на ИмяСистемы
 P_SYS = u"ИмяСистемы"
 P_GRP = u"ADSK_Группирование"
@@ -47,89 +49,54 @@ HISTORY_MAX = 100
 LAST = len(STEPS) - 1
 
 
-def brush(hexs):
-    h = hexs.lstrip("#")
-    return SolidColorBrush(Color.FromRgb(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)))
+def brush(hexs, bg=False):
+    """Кисть для текущей темы окна: hexs — светлый цвет (как в светлой теме), bg — цвет фона (белый -> фон окна,
+    акцент -> тёмно-синий под белым текстом). Тёмная тема — vks_theme."""
+    return T.brush(hexs, bg)
 
 
-C_BLUE = brush("#1F5FAD")
-C_MUTED = brush("#5B6470")
-C_LINE = brush("#D5DAE0")
-C_SEL = brush("#F2F6FC")
-C_DONE = brush("#2F6B3A")
-C_ZERO = brush("#FFF3C4")        # ADSK_Количество = 0 — мягкий жёлтый
-C_WARN_BG = brush("#FDECEC")     # конфликт номера — мягкий красный
-C_WARN_LINE = brush("#E3A3A3")
+pbrush = T.raw_brush            # «лист бумаги» в предпросмотре: цвет без темы
+
+
+def _consts():
+    """Общие кисти — для текущей темы (заново после переключения темы)."""
+    global C_BLUE, C_BLUE_BG, C_MUTED, C_LINE, C_SEL, C_DONE, C_ZERO, C_WARN_BG, C_WARN_LINE, C_BG, C_TEXT
+    C_BLUE = brush("#1F5FAD")
+    C_BLUE_BG = brush("#1F5FAD", True)  # фон под белым текстом
+    C_MUTED = brush("#5B6470")
+    C_LINE = brush("#D5DAE0")
+    C_SEL = brush("#F2F6FC")
+    C_DONE = brush("#2F6B3A")
+    C_ZERO = brush("#FFF3C4")        # ADSK_Количество = 0 — мягкий жёлтый
+    C_WARN_BG = brush("#FDECEC")     # конфликт номера — мягкий красный
+    C_WARN_LINE = brush("#E3A3A3")
+    C_BG = brush("#FFFFFF", True)    # фон окна / карточки
+    C_TEXT = brush("#000000")        # чёрный текст
+
+
+def theme_init():
+    """Тема окон при открытии: настройка пользователя (ui.json) или тема Revit."""
+    try:
+        T.init()
+    except Exception:
+        T.DARK = False      # тема не определилась — светлая, как раньше
+    _consts()
+
+
+_consts()
 
 XAML = u"""
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Менеджер спецификаций: настройка" Width="1180" Height="780" MinWidth="1000" MinHeight="600"
         WindowStartupLocation="CenterScreen" FontFamily="Segoe UI" FontSize="13" Background="White">
- <Window.Resources>
-  <Style TargetType="Button">
-   <Setter Property="Background" Value="#F4F6F8"/>
-   <Setter Property="BorderBrush" Value="#C3CAD3"/>
-   <Setter Property="Foreground" Value="#1F2A37"/>
-   <Setter Property="BorderThickness" Value="1"/>
-   <Setter Property="Padding" Value="8,3"/>
-   <Setter Property="Template">
-    <Setter.Value>
-     <ControlTemplate TargetType="Button">
-      <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-              BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}"
-              SnapsToDevicePixels="True">
-       <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                         VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True"/>
-      </Border>
-      <ControlTemplate.Triggers>
-       <Trigger Property="IsKeyboardFocused" Value="True">
-        <Setter TargetName="bd" Property="BorderBrush" Value="#1F5FAD"/>
-       </Trigger>
-       <Trigger Property="IsMouseOver" Value="True">
-        <Setter TargetName="bd" Property="Background" Value="#E3EEFB"/>
-        <Setter TargetName="bd" Property="BorderBrush" Value="#7FA6D8"/>
-       </Trigger>
-       <Trigger Property="IsPressed" Value="True">
-        <Setter TargetName="bd" Property="Background" Value="#1F5FAD"/>
-        <Setter TargetName="bd" Property="BorderBrush" Value="#1F5FAD"/>
-        <Setter Property="Foreground" Value="White"/>
-       </Trigger>
-       <Trigger Property="IsEnabled" Value="False">
-        <Setter TargetName="bd" Property="Background" Value="#F1F3F5"/>
-        <Setter TargetName="bd" Property="BorderBrush" Value="#E1E5EA"/>
-        <Setter Property="Foreground" Value="#A0A8B2"/>
-       </Trigger>
-      </ControlTemplate.Triggers>
-     </ControlTemplate>
-    </Setter.Value>
-   </Setter>
-  </Style>
-  <Style x:Key="Primary" TargetType="Button">
-   <Setter Property="Background" Value="#1F5FAD"/>
-   <Setter Property="Foreground" Value="White"/>
-   <Setter Property="Template">
-    <Setter.Value>
-     <ControlTemplate TargetType="Button">
-      <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"
-              SnapsToDevicePixels="True">
-       <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
-      </Border>
-      <ControlTemplate.Triggers>
-       <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Background" Value="#174A87"/></Trigger>
-       <Trigger Property="IsPressed" Value="True"><Setter TargetName="bd" Property="Background" Value="#0F3566"/></Trigger>
-       <Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Background" Value="#9DB3CF"/></Trigger>
-      </ControlTemplate.Triggers>
-     </ControlTemplate>
-    </Setter.Value>
-   </Setter>
-  </Style>
- </Window.Resources>
  <Grid x:Name="root" Background="White">
   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Border Grid.Row="0" Background="#F6F7F9" BorderBrush="#DDE1E6" BorderThickness="0,0,0,1" Padding="16,10">
    <DockPanel>
     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+     <Button x:Name="btnTheme" Padding="7,2" Margin="0,0,10,0" FontFamily="Segoe UI Symbol" FontSize="14"
+             ToolTip="Тема окна: как в Revit, светлая или тёмная"/>
      <TextBlock Text="Шаблон:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#4A5361"/>
      <ComboBox x:Name="cbPreset" Width="210" Margin="0,0,6,0"/>
      <Button x:Name="btnPresetApply" Content="Применить" Padding="10,3" Margin="0,0,6,0"/>
@@ -478,7 +445,7 @@ XAML = u"""
              ToolTip="Проблемные элементы — списком поверх Revit: выделить, исправить, вернуться в мастер"/>
      <Button x:Name="btnCancel" Content="Отмена" Padding="16,6" Margin="0,0,8,0"/>
      <Button x:Name="btnBack" Content="← Назад" Padding="16,6" Margin="0,0,8,0"/>
-     <Button x:Name="btnNext" Content="Далее →" Padding="18,6" Style="{StaticResource Primary}"/>
+     <Button x:Name="btnNext" Content="Далее →" Padding="18,6" Style="{DynamicResource Primary}"/>
     </StackPanel>
     <CheckBox x:Name="cbRemember" DockPanel.Dock="Left" Content="Запомнить для этого проекта" IsChecked="True" VerticalAlignment="Center"/>
     <TextBlock x:Name="tStatus" Margin="18,0,12,0" VerticalAlignment="Center" Foreground="#1F5FAD" FontSize="12"
@@ -602,7 +569,7 @@ class DragViz(object):
         self.hl = Rectangle()
         self.hl.Stroke = brush("#1F5FAD")
         self.hl.StrokeThickness = 2
-        self.hl.Fill = SolidColorBrush(Color.FromArgb(0x26, 0x1F, 0x5F, 0xAD))
+        self.hl.Fill = brush("#261F5FAD")
         self.hl.RadiusX = self.hl.RadiusY = 5
         self.line = Rectangle()
         self.line.Height = 3
@@ -611,9 +578,9 @@ class DragViz(object):
         self.mq = Rectangle()
         self.mq.Stroke = brush("#1F5FAD")
         self.mq.StrokeThickness = 1
-        self.mq.Fill = SolidColorBrush(Color.FromArgb(0x26, 0x1F, 0x5F, 0xAD))
+        self.mq.Fill = brush("#261F5FAD")
         g = Border()
-        g.Background = brush("#FFFFFF")
+        g.Background = brush("#FFFFFF", True)
         g.BorderBrush = brush("#1F5FAD")
         g.BorderThickness = Thickness(1)
         g.CornerRadius = CornerRadius(4)
@@ -884,6 +851,7 @@ def model_color(hexs):
 def ask_text(owner, title, prompt, default=u""):
     """Маленькое окно ввода строки -> текст или None (Отмена / Esc)."""
     w = Window()
+    T.dress(w)
     w.Title = title
     w.Width = 420
     w.SizeToContent = SizeToContent.Height
@@ -962,7 +930,8 @@ class Wizard(object):
         self.cfg = copy.deepcopy(cfg)
         self.result = None
         self.page = 0
-        self.win = XamlReader.Parse(XAML)
+        theme_init()
+        self.win = XamlReader.Parse(T.xaml(XAML))
         f = self.win.FindName
         for n in ("steps", "page0", "page1", "page2", "page3", "page4", "page5", "sysInfo",
                   "rbGrpNew", "rbGrpSame", "cbTail", "tbTailPct", "tbGrpGap", "tbSpecGap", "tbMinRows", "tbLeft", "tbTop",
@@ -978,7 +947,7 @@ class Wizard(object):
                   "tNumWarn", "cbCount", "marqRect", "btnFillQty", "cbOrderOn", "tOrderInfo", "bdSortMode",
                   "tSortMode", "btnSortReset", "btnSortDraft", "bdSortWarn", "tSortWarn", "cbSortParam", "cbKitParam",
                   "cvRows", "rbPosRenum", "rbPosKeep", "wpNumFields", "wpNumExample", "tbNumStep", "tCountParams",
-                  "tCountAuto", "cbCountOwn", "tbCountValue", "btnDisc", "tGrpNote", "btnFix"):
+                  "tCountAuto", "cbCountOwn", "tbCountValue", "btnDisc", "tGrpNote", "btnFix", "btnTheme"):
             setattr(self, n, f(n))
         self.sel_groups = set()
         self.sel_chips = set()
@@ -1000,6 +969,8 @@ class Wizard(object):
         self._fam_open = set()          # раскрытые семейства (▸) в «Не распределено»: (ключ, семейство)
         self.mat_items = []
         self.mat_run = set()
+        T.dress(self.win, base=True, root=self.root)
+        self._init_paper()
         self.viz = DragViz(self.win, self.root)
         self._init_page0()
         self._init_page1()
@@ -1011,6 +982,7 @@ class Wizard(object):
         self.btnCancel.Click += lambda s, e: self.win.Close()
         self._init_disc_button()
         self._init_fix_button()
+        self._init_theme_button()
         self.btnBack.Click += lambda s, e: self.go(self.page - 1)
         self.btnNext.Click += self.on_next
         self.go(0)
@@ -1072,7 +1044,7 @@ class Wizard(object):
             except Exception as ex:
                 self.status(u"Проблемные элементы не посчитаны: {0}".format(ex))
                 return
-            cm = ContextMenu()
+            cm = T.menu(ContextMenu())
             for k, t in self.core.PROBLEMS:
                 n = len(found.get(k) or [])
                 mi = MenuItem()
@@ -1090,6 +1062,52 @@ class Wizard(object):
             cm.IsOpen = True
         self.btnFix.Click += open_menu
 
+    def _init_paper(self):
+        """Схема строк на «Листах» — лист бумаги: белый в любой теме."""
+        cv = self.cvRows
+        cv.Background = pbrush("#FAFBFC")
+        bd = cv.Parent
+        if isinstance(bd, Border):
+            bd.Background = pbrush("#FAFBFC")
+            bd.BorderBrush = pbrush("#E1E5EA")
+            T.paper(bd)
+        T.paper(cv)
+
+    def _init_theme_button(self):
+        """Кнопка темы в шапке (☀ / ☾): меню «Как в Revit / Светлая / Тёмная»; смена — сразу, без закрытия окна,
+        выбор запоминается (%LOCALAPPDATA%\\Spec_Manager\\ui.json)."""
+        self._show_theme()
+
+        def open_menu(s, e):
+            cm = T.menu(ContextMenu())
+            for m in T.MODES:
+                mi = MenuItem()
+                mi.Header = T.mode_label(m)
+                mi.IsCheckable = True
+                mi.IsChecked = (m == T.MODE)
+                mi.Click += (lambda m_: (lambda s_, e_: self.set_theme(m_)))(m)
+                cm.Items.Add(mi)
+            cm.PlacementTarget = self.btnTheme
+            cm.IsOpen = True
+        self.btnTheme.Click += open_menu
+
+    def _show_theme(self):
+        self.btnTheme.Content = u"☾" if T.DARK else u"☀"
+
+    def set_theme(self, mode):
+        """Сменить тему открытого окна: стили, цвета элементов, общие кисти."""
+        dark = T.set_mode(mode)
+        if dark == T.DARK:
+            return
+        try:
+            T.switch(self.win, dark, roots=[self.root])
+            _consts()
+            self._show_theme()
+            self.draw_steps()
+            self.status(u"Тема окна: {0}.".format(u"тёмная" if dark else u"светлая"))
+        except Exception as ex:
+            self.status(u"Тема не сменилась: {0}".format(ex))
+
     def draw_steps(self):
         self.steps.Children.Clear()
         for i, name in enumerate(STEPS):
@@ -1101,7 +1119,7 @@ class Wizard(object):
             sp.Orientation = Orientation.Horizontal
             mark = u"✓" if i < self.page else str(i + 1)
             if i == self.page:
-                b.Background = C_BLUE
+                b.Background = C_BLUE_BG
                 sp.Children.Add(tb(u"{0}  {1}".format(mark, name), bold=True, color=Brushes.White))
             else:
                 sp.Children.Add(tb(u"{0}  {1}".format(mark, name), color=C_DONE if i < self.page else brush("#4A5361")))
@@ -1640,7 +1658,7 @@ class Wizard(object):
         b.BorderThickness = Thickness(2) if sel else Thickness(1)
         b.Padding = Thickness(9, 6, 9, 6) if sel else Thickness(10, 7, 10, 7)
         b.BorderBrush = C_BLUE if sel else (brush("#B8C2CE") if link else C_LINE)
-        b.Background = brush(colors[(int(link) - 1) % len(colors)]) if link else (C_SEL if sel else Brushes.White)
+        b.Background = brush(colors[(int(link) - 1) % len(colors)]) if link else (C_SEL if sel else C_BG)
         outer = StackPanel()
         grid = Grid()
         for w in (GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength.Auto, GridLength(1, GridUnitType.Star),
@@ -1670,7 +1688,7 @@ class Wizard(object):
         num.Width = 22
         num.Height = 22
         num.CornerRadius = CornerRadius(11)
-        num.Background = C_BLUE if sel else brush("#1F2A37")
+        num.Background = C_BLUE_BG if sel else brush("#1F2A37", True)
         num.Margin = Thickness(0, 0, 8, 0)
         nt = tb(str(i + 1), bold=True, size=12, color=Brushes.White)
         nt.HorizontalAlignment = HorizontalAlignment.Center
@@ -1749,7 +1767,7 @@ class Wizard(object):
             lb_.CornerRadius = CornerRadius(9)
             lb_.Padding = Thickness(8, 0, 8, 1)
             lb_.Margin = Thickness(0, 0, 8, 0)
-            lb_.Background = brush("#FFFFFF")
+            lb_.Background = brush("#FFFFFF", True)
             lb_.BorderBrush = brush("#B8C2CE")
             lb_.BorderThickness = Thickness(1)
             lb_.Child = tb(u"Связка {0}".format(self._link_numbers().get(link, link)), size=11,
@@ -2504,6 +2522,7 @@ class Wizard(object):
             return
         title = dict((k, t) for k, b, t, o in self.core.D.CATS)
         w = Window()
+        T.dress(w)
         w.Title = u"Заполнить количество — {0}".format(scope)
         w.Width = 760
         w.Height = 560
@@ -3681,7 +3700,7 @@ class Wizard(object):
             g.Children.Add(num)
             lab = StackPanel()
             lab.Children.Add(tb(r.get("label") or r["param"], bold=True,
-                                color=Brushes.Black if r.get("on") and not gray else C_MUTED))
+                                color=C_TEXT if r.get("on") and not gray else C_MUTED))
             sub = []
             if gray:
                 sub.append(u"шаг 3 пропущен — не действует, порядок «по имени»")
@@ -3850,6 +3869,7 @@ class Wizard(object):
             return
         hide = set(self.cfg.get("qty_hide") or [])
         w = Window()
+        T.dress(w)
         w.Title = u"Строки с количеством меньше {0:g}".format(qmin)
         w.Width = 900
         w.Height = 620
@@ -4476,7 +4496,7 @@ class Wizard(object):
         t.FontFamily = FontFamily(u"GOST Common, ISOCPEUR, Arial Narrow, Arial")
         t.FontSize = max(1.0, font / self.ROWS_CAP * s)
         t.FontWeight = FontWeights.Bold if bold else FontWeights.Normal
-        t.Foreground = brush("#1A1F26")
+        t.Foreground = pbrush("#1A1F26")
         t.TextWrapping = TextWrapping.Wrap
         t.TextAlignment = (TextAlignment.Left if al == "left" else
                            (TextAlignment.Right if al == "right" else TextAlignment.Center))
@@ -4503,7 +4523,7 @@ class Wizard(object):
     def _rows_line(self, x1, y1, x2, y2, color, th=1.0):
         ln = Line()
         ln.X1, ln.Y1, ln.X2, ln.Y2 = x1, y1, x2, y2
-        ln.Stroke = brush(color)
+        ln.Stroke = pbrush(color)
         ln.StrokeThickness = th
         self.cvRows.Children.Add(ln)
 
@@ -4511,7 +4531,7 @@ class Wizard(object):
         t = TextBlock()
         t.Text = text
         t.FontSize = size
-        t.Foreground = C_BLUE
+        t.Foreground = pbrush("#1F5FAD")
         t.Width = max(1.0, w)
         t.TextAlignment = TextAlignment.Right if al == "right" else TextAlignment.Center
         Canvas.SetLeft(t, x)
@@ -4597,7 +4617,7 @@ class Wizard(object):
                     o[1] = max(o[1], need)
                     mk = Rectangle()
                     mk.Width = mk.Height = 5
-                    mk.Fill = brush("#C2410C")
+                    mk.Fill = pbrush("#C2410C")
                     Canvas.SetLeft(mk, cx + cw * s - 5)
                     Canvas.SetTop(mk, y)
                     cv.Children.Add(mk)
@@ -4619,7 +4639,7 @@ class Wizard(object):
         frame = Rectangle()
         frame.Width = max(1.0, x_end - GL)
         frame.Height = max(1.0, y - GT)
-        frame.Stroke = brush("#1A1F26")
+        frame.Stroke = pbrush("#1A1F26")
         frame.StrokeThickness = thick
         Canvas.SetLeft(frame, GL)
         Canvas.SetTop(frame, GT)
@@ -4938,6 +4958,7 @@ class Wizard(object):
 
     def ask_name(self, default, for_new):
         w = Window()
+        T.dress(w)
         w.Title = u"Сохранить шаблон"
         w.Width = 440
         w.SizeToContent = SizeToContent.Height
@@ -5020,7 +5041,7 @@ class Wizard(object):
 
     def on_preset_menu(self, s, e):
         p = self._sel_preset()
-        cm = ContextMenu()
+        cm = T.menu(ContextMenu())
 
         def item(text, fn, enabled=True, checked=None):
             mi = MenuItem()
@@ -5143,6 +5164,7 @@ class MatManager(object):
         self.sel = 0 if self.items else -1
         self.result = None
         w = Window()
+        T.dress(w)
         w.Title = u"Менеджер дополнительных материалов"
         w.Width = 1060
         w.Height = 700
@@ -5478,6 +5500,7 @@ class DisciplineWindow(object):
             self.gb = cfg["group_by"]
         self.cards = {}
         w = Window()
+        T.dress(w)
         w.Title = u"Менеджер спецификаций: раздел проекта" if first else u"Сменить раздел проекта"
         w.Width = 780
         w.SizeToContent = SizeToContent.Height
@@ -5486,7 +5509,7 @@ class DisciplineWindow(object):
         w.ShowInTaskbar = False
         w.FontFamily = FontFamily(u"Segoe UI")
         w.FontSize = 13
-        w.Background = Brushes.White
+        w.Background = C_BG
         self.win = w
         root = StackPanel()
         root.Margin = Thickness(16, 12, 16, 14)
@@ -5517,7 +5540,7 @@ class DisciplineWindow(object):
         ok.IsDefault = True
         ok.Padding = Thickness(18, 5, 18, 5)
         ok.Margin = Thickness(0, 0, 8, 0)
-        ok.Background = C_BLUE
+        ok.Background = C_BLUE_BG
         ok.Foreground = Brushes.White
         ok.FontWeight = FontWeights.SemiBold
         ok.Click += lambda s, e: self._ok()
@@ -5578,7 +5601,7 @@ class DisciplineWindow(object):
     def _draw(self):
         for k, (b, head) in self.cards.items():
             on = k == self.pick
-            b.Background = brush("#EEF4FF") if on else Brushes.White
+            b.Background = brush("#EEF4FF") if on else C_BG
             b.BorderBrush = C_BLUE if on else C_LINE
             b.BorderThickness = Thickness(2 if on else 1)
             head.Foreground = C_BLUE if on else brush("#1D2C43")
@@ -5681,6 +5704,7 @@ class ScopeWindow(object):
         self.sec = last.get("sec") if last.get("sec") in names else (names[0] if names else None)
         self.result = None
         w = Window()
+        T.dress(w)
         w.Title = u"Менеджер спецификаций: что собираем"
         w.Width = 620
         w.SizeToContent = SizeToContent.Height
@@ -5689,7 +5713,7 @@ class ScopeWindow(object):
         w.ShowInTaskbar = False
         w.FontFamily = FontFamily(u"Segoe UI")
         w.FontSize = 13
-        w.Background = Brushes.White
+        w.Background = C_BG
         self.win = w
         root = StackPanel()
         root.Margin = Thickness(16, 12, 16, 14)
@@ -5772,7 +5796,7 @@ class ScopeWindow(object):
         ok.IsDefault = True
         ok.Padding = Thickness(18, 5, 18, 5)
         ok.Margin = Thickness(0, 0, 8, 0)
-        ok.Background = C_BLUE
+        ok.Background = C_BLUE_BG
         ok.Foreground = Brushes.White
         ok.FontWeight = FontWeights.SemiBold
         ok.Click += lambda s, e: self._ok()
@@ -5838,6 +5862,7 @@ def choose_scope(core, infos, cfg, owner_handle=None):
     secs, nosec = core.sections_found(infos)
     if not secs:
         return {"scope": "all", "sec": None}
+    theme_init()
     lo = core.layout_cfg(cfg)
     main = (lo.get("sheet_folder") or u"").strip() or u"ВК.С"
     apply_fn = (lambda: core.section_apply(core.doc)) if hasattr(core, "section_apply") else None
@@ -5850,6 +5875,7 @@ def choose_discipline(core, infos, cfg, owner_handle=None, first=True, ov_info=N
     в cfg["group_by"], cfg["group_fallback"] (только при «Выбрать»)."""
     stats = getattr(core, "grouping_stats", None)
     fn = (lambda fb: stats(infos, fb)) if stats else None
+    theme_init()
     return DisciplineWindow(core.D, infos, cfg, first, ov_info, fn).show(owner_handle)
 
 

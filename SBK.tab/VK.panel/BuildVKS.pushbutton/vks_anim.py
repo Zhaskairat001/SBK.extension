@@ -23,6 +23,8 @@ from System.Windows.Markup import XamlReader
 from System.Windows.Media import SolidColorBrush, Color
 from System.Windows.Threading import Dispatcher, DispatcherTimer, DispatcherPriority
 
+import vks_theme as T
+
 TITLE = u"Менеджер спецификаций"
 
 XAML = u"""
@@ -75,9 +77,9 @@ WEIGHTS = [0.04, 0.02, 0.08, 0.18, 0.39, 0.29]     # доли этапов сб�
 READ_WEIGHTS = [0.15, 0.55, 0.15, 0.15]            # то же для чтения модели
 
 
-def _brush(h):
-    h = h.lstrip("#")
-    return SolidColorBrush(Color.FromRgb(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)))
+def _brush(h, bg=False):
+    """Кисть для темы окна (светлый цвет -> тёмный в тёмной теме, vks_theme)."""
+    return T.brush(h, bg)
 
 
 def _mmss(sec):
@@ -118,6 +120,10 @@ class Splash(object):
         self.done = False
         self.failed = False
         self._tick = 0
+        try:
+            self.dark = T.init()       # тема окна — как у мастера (ui.json / тема Revit); читается до потока окна
+        except Exception:
+            self.dark = False
         self._ready = ManualResetEvent(False)
         th = Thread(ThreadStart(self._thread))
         th.SetApartmentState(ApartmentState.STA)
@@ -134,7 +140,7 @@ class Splash(object):
     def _thread(self):
         try:
             self.disp = Dispatcher.CurrentDispatcher
-            self.win = XamlReader.Parse(XAML)
+            self.win = XamlReader.Parse(T.xaml(XAML, self.dark))
             f = self.win.FindName
             for n in ("root", "band", "spin", "stagesPanel", "pb", "tPct", "tTime", "tTitle", "tProject"):
                 setattr(self, n, f(n))
@@ -271,7 +277,7 @@ class Splash(object):
         self.spin.Visibility = Visibility.Collapsed
         self.tTitle.Text = text or (u"Готово" if ok else u"Ошибка — изменения отменены")
         if not ok:
-            self.band.Background = _brush("#B3261E")
+            self.band.Background = _brush("#B3261E", True)
         self._draw()
         if delay == 0:
             self._close_now()
