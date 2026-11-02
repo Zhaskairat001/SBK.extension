@@ -1,0 +1,31 @@
+# Настройки проектов и шаблоны пользователя — личные, в репозиторий не идут
+_settings/
+_presets/
+
+# Старая версия кнопки (хранится локально, не публикуется)
+SBK.tab/VK.panel/BuildVKS.pushbutton/script_v1.py
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Логи и временное
+*.log
+logs/
+_tmp*/
+*.tmp
+*.bak
+
+# Личные настройки и секреты
+settings.local.json
+.env
+*.env
+secrets.json
+credentials.json
+
+# IDE / ОС
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store

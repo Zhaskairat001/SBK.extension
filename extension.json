@@ -1,0 +1,14 @@
+{
+  "builtin": "False",
+  "default_enabled": "True",
+  "type": "extension",
+  "rocket_mode_compatible": "False",
+  "name": "SBK",
+  "description": "Менеджер спецификаций: спецификации ВК и ОВ по ГОСТ 21.601-2011 одной кнопкой (Revit 2025, pyRevit)",
+  "author": "Zhaskairat001",
+  "author_profile": "https://github.com/Zhaskairat001",
+  "url": "https://github.com/Zhaskairat001/SBK.extension.git",
+  "website": "https://github.com/Zhaskairat001/SBK.extension",
+  "image": "",
+  "dependencies": []
+}
