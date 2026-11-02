@@ -906,6 +906,34 @@ def pastel(hexs, k=0.82):
     return "#" + u"".join(u"%02X" % int(round(v + (255 - v) * k)) for v in c)
 
 
+def sys_bg(line, k):
+    """Фон таблетки системы: светлая тема — пастельный (k — доля белого), тёмная — цвет системы на тёмном фоне."""
+    if T.DARK:
+        return T.raw_brush(T.under_white(T.mix(line, T.BG, 0.45)))
+    return brush(pastel(line, k))
+
+
+def sys_line(line, k):
+    """Рамка таблетки системы."""
+    if T.DARK:
+        return T.raw_brush(T.mix(line, T.BG, 0.75))
+    return brush(pastel(line, k))
+
+
+def sys_text(text, line=None):
+    """Текст внутри таблетки системы: светлая тема — цвет системы, тёмная — белый (решение 02.11.2026)."""
+    if T.DARK:
+        return T.raw_brush("#FFFFFF")
+    return brush(text)
+
+
+def sys_name(text, line):
+    """Имя системы в списке слева: светлая тема — цвет системы, тёмная — светлый оттенок цвета системы."""
+    if T.DARK:
+        return T.raw_brush(T.mix(line, "#FFFFFF", 0.30))
+    return brush(text)
+
+
 def color_square(line, light, size=10):
     sq = Border()
     sq.Width = sq.Height = size
@@ -1104,6 +1132,8 @@ class Wizard(object):
             _consts()
             self._show_theme()
             self.draw_steps()
+            self.draw_systems()
+            self.draw_groups()
             self.status(u"Тема окна: {0}.".format(u"тёмная" if dark else u"светлая"))
         except Exception as ex:
             self.status(u"Тема не сменилась: {0}".format(ex))
@@ -1400,7 +1430,7 @@ class Wizard(object):
             line, text, light = self._sys_color(name)
             t1.Children.Add(tb(u"⋮⋮ ", color=brush("#8A939E")))
             t1.Children.Add(color_square(line, light))
-            t1.Children.Add(tb(name, bold=True, color=brush(text)))
+            t1.Children.Add(tb(name, bold=True, color=sys_name(text, line)))
             if byg and self.core.is_fallback_unit(name):
                 t1.Children.Add(tb(u"  по сокращению", size=11, color=brush("#B3261E")))
             g.Children.Add(t1)
@@ -1492,12 +1522,12 @@ class Wizard(object):
         b.CornerRadius = CornerRadius(9)
         b.Padding = Thickness(7, 0, 7, 1)
         b.Margin = Thickness(0, 1, 4, 1)
-        b.Background = brush(pastel(line, 0.70 if light else 0.80))
-        b.BorderBrush = brush("#C27A00") if was else brush(pastel(line, 0.45))
+        b.Background = sys_bg(line, 0.70 if light else 0.80)
+        b.BorderBrush = brush("#C27A00") if was else sys_line(line, 0.45)
         b.BorderThickness = Thickness(1.5 if was else 1)
         sp = StackPanel()
         sp.Orientation = Orientation.Horizontal
-        sp.Children.Add(tb(text, size=11, bold=True, color=brush(tcol)))
+        sp.Children.Add(tb(text, size=11, bold=True, color=sys_text(tcol)))
         n_el = sum(cnt.get(n, 0) for n in names)
         lines = [u"{0}: {1} эл.".format(n, cnt.get(n, 0)) for n in names[:40]]
         if len(names) > 40:
@@ -1987,7 +2017,7 @@ class Wizard(object):
         for b, n in self._chip_elems:
             on = n in self.sel_chips
             line = self._sys_color(n)[0]
-            b.BorderBrush = C_BLUE if on else brush(pastel(line, 0.55))
+            b.BorderBrush = C_BLUE if on else sys_line(line, 0.55)
             b.BorderThickness = Thickness(2) if on else Thickness(1)
 
     def mq_move(self, s, e):
@@ -2097,21 +2127,21 @@ class Wizard(object):
         b = Border()
         b.Tag = u"chip:" + sname
         b.CornerRadius = CornerRadius(11)                 # прежняя форма: «таблетка»
-        b.Background = brush(pastel(line, 0.78 if light else 0.84))
-        b.BorderBrush = C_BLUE if sel else brush(pastel(line, 0.55))
+        b.Background = sys_bg(line, 0.78 if light else 0.84)
+        b.BorderBrush = C_BLUE if sel else sys_line(line, 0.55)
         b.BorderThickness = Thickness(2) if sel else Thickness(1)
         b.Padding = Thickness(7, 0, 1, 0) if sel else Thickness(8, 1, 2, 1)
         b.Margin = Thickness(0, 2, 4, 2)
         sp = StackPanel()
         sp.Orientation = Orientation.Horizontal
-        sp.Children.Add(tb(sname, size=12, bold=sel, color=brush(text)))
+        sp.Children.Add(tb(sname, size=12, bold=sel, color=sys_text(text)))
         x = Button()
         x.Content = u"×"
         x.Padding = Thickness(4, 0, 4, 0)
         x.Margin = Thickness(2, 0, 0, 0)
         x.Background = Brushes.Transparent
         x.BorderThickness = Thickness(0)
-        x.Foreground = brush(text)
+        x.Foreground = sys_text(text)
         x.ToolTip = u"Убрать из группы"
 
         def remove(s, e, n=sname):

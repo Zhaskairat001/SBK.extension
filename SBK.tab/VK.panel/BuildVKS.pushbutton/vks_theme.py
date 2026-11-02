@@ -110,6 +110,29 @@ def dark_of(hexs, bg=False):
     return ("#" + a + d[1:]) if a else d
 
 
+def mix(a, b, k):
+    """Смесь цветов: k — доля a (0..1) -> #RRGGBB."""
+    a_, b_ = _norm(a)[-6:], _norm(b)[-6:]
+    ca = [int(a_[i:i + 2], 16) for i in (0, 2, 4)]
+    cb = [int(b_[i:i + 2], 16) for i in (0, 2, 4)]
+    return "#" + u"".join(u"%02X" % int(round(x * k + y * (1.0 - k))) for x, y in zip(ca, cb))
+
+
+def _lum(h):
+    c = [int(_norm(h)[-6:][i:i + 2], 16) / 255.0 for i in (0, 2, 4)]
+    c = [v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4 for v in c]
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+
+def under_white(h):
+    """Темнее h, пока белый текст на нём не станет читаемым (контраст не меньше 5:1)."""
+    for _ in range(12):
+        if 1.05 / (_lum(h) + 0.05) >= 5.0:
+            break
+        h = mix(h, "#000000", 0.85)
+    return h
+
+
 def light_of(hexs):
     """Тёмный цвет (выданный dark_of) -> исходный светлый; чужой цвет — как есть."""
     h = _norm(hexs)
